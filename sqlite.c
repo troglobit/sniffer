@@ -129,3 +129,9 @@ void db_insert(unsigned char *buf, int len)
 	fflush(fp);
 }
 
+/**
+ * Local Variables:
+ *  indent-tabs-mode: t
+ *  c-file-style: "linux"
+ * End:
+ */

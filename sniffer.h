@@ -46,3 +46,10 @@ static inline char *get_path(char *ifname, char *ext)
 }
 
 #endif /* SNIFFER_DB_H_ */
+
+/**
+ * Local Variables:
+ *  indent-tabs-mode: t
+ *  c-file-style: "linux"
+ * End:
+ */
