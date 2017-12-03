@@ -351,8 +351,11 @@ int main(int argc, char *argv[])
 	while (running) {
 		len = sizeof(sa);
 		sz = recvfrom(sd, buf, BUFSIZ, 0, &sa, &len);
-		if (sz < 0)
+		if (sz < 0) {
+			if (EINTR == errno)
+				continue;
 			err(1, "Failed receiving packets from %s", ifname ?: "network");
+		}
 
 		process(buf, sz);
 	}
