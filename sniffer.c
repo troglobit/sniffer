@@ -298,13 +298,15 @@ void process(unsigned char *buf, int size)
 		break;
 	}
 
-	printf("TCP: %lld  UDP: %lld  ICMP: %lld  IGMP: %lld  Others: %lld  Total: %lld\r",
+	printf("\r\e[KTCP: %lld  UDP: %lld  ICMP: %lld  IGMP: %lld  Others: %lld  Total: %lld",
 	       tcp, udp, icmp, igmp, others, total);
+	fflush(stdout);
 }
 
 static void sigcb(int signo)
 {
 	DBG("Got signal %d\n", signo);
+	printf("\e[?25h");
 	running = 0;
 }
 
@@ -321,6 +323,7 @@ int main(int argc, char *argv[])
 		errx(1, "Usage: %s IFNAME", argv[0]);
 	ifname = argv[1];
 
+	printf("\e[?25l");
 	printf("Starting %s on iface %s ...\n", argv[0], ifname);
 	signal(SIGTERM, sigcb);
 	signal(SIGQUIT, SIG_IGN);
@@ -354,7 +357,7 @@ int main(int argc, char *argv[])
 		process(buf, sz);
 	}
 	close(sd);
-	printf("Finished");
+	printf("\nFinished.\n");
 
 	return 0;
 }
