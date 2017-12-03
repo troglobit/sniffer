@@ -44,11 +44,11 @@
 #include <unistd.h>
 
 #define DBG(args...) if (debug)   fprintf(stderr, ##args)
-#define LOG(args...) if (logfile) fprintf(logfile, ##args)
+#define LOG(args...) if (logfp) fprintf(logfp, ##args)
 
 extern char *__progname;
 
-static FILE *logfile = NULL;
+static FILE *logfp = NULL;
 static struct sockaddr_in source, dest;
 static int debug = 0;
 static int running = 1;
@@ -324,13 +324,13 @@ int main(int argc, char *argv[])
 	unsigned char *buf;
 	socklen_t len;
 	ssize_t sz;
-	char *fn = NULL, *ifname = NULL;
+	char *logfile = NULL, *ifname = NULL;
 	int sd, ret;
 
 	while ((ret = getopt(argc, argv, "hl:")) != EOF) {
 		switch (ret) {
 		case 'l':
-			fn = optarg;
+			logfile = optarg;
 			break;
 
 		default:
@@ -363,10 +363,10 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		err(1, "Failed binding socket to ifname %s", ifname);
 
-	if (fn) {
-		logfile = fopen(fn, "w");
-		if (logfile == NULL)
-			printf("Unable to create log.txt file.");
+	if (logfile) {
+		logfp = fopen(logfile, "w");
+		if (logfp == NULL)
+			warn("Unable to create log file, %s", logfile);
 	}
 
 	while (running) {
