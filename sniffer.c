@@ -22,11 +22,6 @@
 
 #include "sniffer.h"
 
-#define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt, ##args)
-#define DBG(fmt, args...) if (debug) LOG(fmt, ##args)
-
-extern char *__progname;
-
 static FILE *logfp = NULL;
 static struct sockaddr_in source, dest;
 static int debug = 0;

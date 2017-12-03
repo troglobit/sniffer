@@ -28,6 +28,11 @@
 #define DBTABLE "FRAME"
 #define FNBASE  "sniffer-%s"
 
+#define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt "\n", ##args)
+#define DBG(fmt, args...) if (debug) LOG(fmt, ##args)
+
+extern char *__progname;
+
 int   db_open   (char *ifname);
 int   db_close  (void);
 void  db_insert (unsigned char *buf, int len);
