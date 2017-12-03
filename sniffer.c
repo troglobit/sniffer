@@ -120,10 +120,11 @@ static void db_add(unsigned char *buf, int len)
 		eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
 	fprintf(fp, "SMAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X | ", eth->h_source[0], eth->h_source[1],
 		eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-	fprintf(fp, "TYPE: 0x%.4X | ", (unsigned short)eth->h_proto);
+	fprintf(fp, "TYPE: 0x%.4X | ", (unsigned short)ntohs(eth->h_proto));
 	fprintf(fp, "IPv%d | ", (unsigned int)iph->version);
-	fprintf(fp, "SIP: %s |", inet_ntoa(source.sin_addr));
-	fprintf(fp, "DIP: %s ]\n", inet_ntoa(dest.sin_addr));
+	fprintf(fp, "SIP: %15s |", inet_ntoa(source.sin_addr));
+	fprintf(fp, "DIP: %15s ]\n", inet_ntoa(dest.sin_addr));
+	fflush(fp);
 }
 
 void print_ethernet_header(unsigned char *buf, int len)
