@@ -22,6 +22,7 @@
 
 #include <err.h>
 #include <errno.h>
+#include <getopt.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
@@ -44,6 +45,8 @@
 
 #define DBG(args...) if (debug)   fprintf(stderr, ##args)
 #define LOG(args...) if (logfile) fprintf(logfile, ##args)
+
+extern char *__progname;
 
 static FILE *logfile = NULL;
 static struct sockaddr_in source, dest;
@@ -310,21 +313,37 @@ static void sigcb(int signo)
 	running = 0;
 }
 
+static int usage(int code)
+{
+	errx(1, "Usage: %s IFNAME", __progname);
+}
+
 int main(int argc, char *argv[])
 {
 	struct sockaddr sa;
 	unsigned char *buf;
 	socklen_t len;
 	ssize_t sz;
-	char *ifname = NULL;
+	char *fn = NULL, *ifname = NULL;
 	int sd, ret;
 
-	if (argc != 2)
-		errx(1, "Usage: %s IFNAME", argv[0]);
-	ifname = argv[1];
+	while ((ret = getopt(argc, argv, "hl:")) != EOF) {
+		switch (ret) {
+		case 'l':
+			fn = optarg;
+			break;
+
+		default:
+			return usage(0);
+		}
+	}
+
+	if (optind >= argc)
+		return usage(1);
+	ifname = argv[optind];
 
 	printf("\e[?25l");
-	printf("Starting %s on iface %s ...\n", argv[0], ifname);
+	printf("Starting %s on iface %s ...\n", __progname, ifname);
 	signal(SIGTERM, sigcb);
 	signal(SIGQUIT, SIG_IGN);
 	signal(SIGUSR1, SIG_IGN);
@@ -344,9 +363,11 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		err(1, "Failed binding socket to ifname %s", ifname);
 
-	logfile = fopen("log.txt", "w");
-	if (logfile == NULL)
-		printf("Unable to create log.txt file.");
+	if (fn) {
+		logfile = fopen(fn, "w");
+		if (logfile == NULL)
+			printf("Unable to create log.txt file.");
+	}
 
 	while (running) {
 		len = sizeof(sa);
