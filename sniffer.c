@@ -20,59 +20,14 @@
  * SOFTWARE.
  */
 
-#include <err.h>
-#include <errno.h>
-#include <getopt.h>
-#include <netdb.h>
-#include <paths.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sqlite3.h>
+#include "sniffer.h"
 
-#include <netinet/in.h>
-#include <netinet/ip_icmp.h>
-#include <netinet/udp.h>
-#include <netinet/tcp.h>
-#include <netinet/ip.h>
-#include <netinet/if_ether.h>
-#include <net/ethernet.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
+int debug = 0;
+FILE *logfp = NULL;
 
-#define DBTABLE "FRAME"
-#define FNBASE  "sniffer-%s"
-
-#define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt, ##args)
-#define DBG(fmt, args...) if (debug) LOG(fmt, ##args)
-
-extern char *__progname;
-
-static FILE *fp = NULL;
-static FILE *logfp = NULL;
-static sqlite3 *db = NULL;
 static struct sockaddr_in source, dest;
-static int debug = 0;
 static int running = 1;
 static unsigned long long tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0;
-
-static char *get_path(char *ifname, char *ext)
-{
-	static char path[128];
-
-	if (getuid() > 0)
-		snprintf(path, sizeof(path), _PATH_VARRUN "user/%d/" FNBASE "%s",
-			 getuid(), ifname, ext);
-	else
-		snprintf(path, sizeof(path), _PATH_VARRUN FNBASE "%s", ifname, ext);
-
-	return path;
-}
 
 static void print_payload(unsigned char *data, int len)
 {
@@ -90,7 +45,7 @@ static void print_payload(unsigned char *data, int len)
 				else
 					LOG(".");
 			}
-			LOG("\n");
+			LOG("");
 		}
 
 		if (i % 16 == 0)
@@ -109,132 +64,9 @@ static void print_payload(unsigned char *data, int len)
 					LOG(".");
 			}
 
-			LOG("\n");
+			LOG("");
 		}
 	}
-}
-
-static int callback(void *unused, int argc, char *argv[], char **col)
-{
-	int i;
-
-	for(i = 0; i < argc; i++)
-		printf("%s = %s\n", col[i], argv[i] ? argv[i] : "NULL");
-	printf("\n");
-
-	return 0;
-}
-
-static int db_open(char *ifname)
-{
-	int rc;
-	char *path, *sql, *err;
-
-	path = get_path(ifname, ".db");
-	rc = sqlite3_open(path, &db);
-	if (rc) {
-		fprintf(stderr, "Failed opening db, %s: %s\n", path, sqlite3_errmsg(db));
-		db = NULL;
-
-		fp = fopen(get_path(ifname, ".txt"), "w");
-		if (!fp)
-			return 1;
-	}
-
-	sql = "CREATE TABLE " DBTABLE "("
-		"ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-		"DMAC           TEXT    NOT NULL,"
-		"SMAC           TEXT    NOT NULL,"
-		"TYPE           TEXT    NOT NULL,"
-		"SIP            TEXT    NOT NULL,"
-		"DIP            TEXT    NOT NULL);";
-//		"COUNT          INT     NOT NULL);";
-	rc = sqlite3_exec(db, sql, callback, 0, &err);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", err);
-		sqlite3_free(err);
-		return 1;
-	}
-	warnx("db %s open, table %s created successfully", path, DBTABLE);
-
-	return 0;
-}
-
-static int db_close(void)
-{
-	if (db)
-		sqlite3_close(db);
-	if (fp)
-		fclose(fp);
-}
-
-static void db_add(unsigned char *buf, int len)
-{
-	struct ethhdr *eth = (struct ethhdr *)buf;
-	unsigned short offset = 0, iphdrlen, ip_off, type;
-	struct iphdr *iph;
-	char dmac[20], smac[20], ethtype[10], sip[20], dip[20];
-
-	type = ntohs(eth->h_proto);
-	if (type == 0x0d5a) {
-		offset = 12;
-//		type = ntohs((eth + 10)->h_proto);
-	}
-	iph = (struct iphdr *)(buf + offset + sizeof(struct ethhdr));
-	iphdrlen = iph->ihl * 4;
-
-	memset(&source, 0, sizeof(source));
-	source.sin_addr.s_addr = iph->saddr;
-
-	memset(&dest, 0, sizeof(dest));
-	dest.sin_addr.s_addr = iph->daddr;
-
-	/* Skip fragments ... */
-	ip_off = ntohs(iph->frag_off);
-	if (ip_off & 0x1fff)
-		return;
-
-	snprintf(dmac, sizeof(dmac), "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-		 eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
-		 eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
-	snprintf(smac, sizeof(smac), "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-		 eth->h_source[0], eth->h_source[1], eth->h_source[2],
-		 eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-	snprintf(ethtype, sizeof(ethtype), "0x%.4X", (unsigned short)type);
-	snprintf(sip, sizeof(sip), "%15s", inet_ntoa(source.sin_addr));
-	snprintf(dip, sizeof(dip), "%15s", inet_ntoa(dest.sin_addr));
-
-	if (db) {
-		int rc;
-		char sql[256];
-		char *err;
-
-		snprintf(sql, sizeof(sql), "INSERT INTO " DBTABLE "(DMAC, SMAC, TYPE, SIP, DIP) "
-			 "VALUES ('%s', '%s', '%s', '%s', '%s');", dmac, smac, ethtype, sip, dip);
-
-		rc = sqlite3_exec(db, sql, callback, 0, &err);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error: %s\n", err);
-			sqlite3_free(err);
-			return;
-		}
-
-		return;
-	}
-
-	warnx("db not open.");
-	if (!fp) {
-		warnx("log file not open.");
-		return;
-	}
-
-	fprintf(fp, "[ DMAC: %s | ", dmac);
-	fprintf(fp, "SMAC: %s | ", smac);
-	fprintf(fp, "TYPE: %s | ", ethtype);
-	fprintf(fp, "IPv%d | ", (unsigned int)iph->version);
-	fprintf(fp, "SIP: %s |", sip);
-	fprintf(fp, "DIP: %s ]\n", dip);
-	fflush(fp);
 }
 
 static void print_ethernet_header(unsigned char *buf, int len)
@@ -244,13 +76,13 @@ static void print_ethernet_header(unsigned char *buf, int len)
 	if (!logfp)
 		return;
 
-	LOG("\n");
-	LOG("Ethernet Header\n");
-	LOG("   |-Destination Address : %.2X:%.2X:%.2X:%.2X:%.2X:%.2X \n", eth->h_dest[0], eth->h_dest[1],
+	LOG("");
+	LOG("Ethernet Header");
+	LOG("   |-Destination Address : %.2X:%.2X:%.2X:%.2X:%.2X:%.2X ", eth->h_dest[0], eth->h_dest[1],
 	    eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
-	LOG("   |-Source Address      : %.2X:%.2X:%.2X:%.2X:%.2X:%.2X \n", eth->h_source[0], eth->h_source[1],
+	LOG("   |-Source Address      : %.2X:%.2X:%.2X:%.2X:%.2X:%.2X ", eth->h_source[0], eth->h_source[1],
 	    eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-	LOG("   |-Protocol            : %u \n", (unsigned short)eth->h_proto);
+	LOG("   |-Protocol            : %u ", (unsigned short)eth->h_proto);
 }
 
 static void print_ip_header(unsigned char *buf, int len)
@@ -258,7 +90,7 @@ static void print_ip_header(unsigned char *buf, int len)
 	unsigned short iphdrlen;
 	struct iphdr *iph;
 
-	db_add(buf, len);
+	db_insert(buf, len);
 
 	print_ethernet_header(buf, len);
 
@@ -274,21 +106,21 @@ static void print_ip_header(unsigned char *buf, int len)
 	memset(&dest, 0, sizeof(dest));
 	dest.sin_addr.s_addr = iph->daddr;
 
-	LOG("\n");
-	LOG("IP Header\n");
-	LOG("   |-IP Version        : %d\n", (unsigned int)iph->version);
-	LOG("   |-IP Header Length  : %d DWORDS or %d Bytes\n", (unsigned int)iph->ihl, ((unsigned int)(iph->ihl)) * 4);
-	LOG("   |-Type Of Service   : %d\n", (unsigned int)iph->tos);
-	LOG("   |-IP Total Length   : %d  Bytes(Size of Packet)\n", ntohs(iph->tot_len));
-	LOG("   |-Identification    : %d\n", ntohs(iph->id));
-//	LOG("   |-Reserved ZERO Field   : %d\n",(unsigned int)iphdr->ip_reserved_zero);
-//	LOG("   |-Dont Fragment Field   : %d\n",(unsigned int)iphdr->ip_dont_fragment);
-//	LOG("   |-More Fragment Field   : %d\n",(unsigned int)iphdr->ip_more_fragment);
-	LOG("   |-TTL      : %d\n", (unsigned int)iph->ttl);
-	LOG("   |-Protocol : %d\n", (unsigned int)iph->protocol);
-	LOG("   |-Checksum : %d\n", ntohs(iph->check));
-	LOG("   |-Source IP        : %s\n", inet_ntoa(source.sin_addr));
-	LOG("   |-Destination IP   : %s\n", inet_ntoa(dest.sin_addr));
+	LOG("");
+	LOG("IP Header");
+	LOG("   |-IP Version        : %d", (unsigned int)iph->version);
+	LOG("   |-IP Header Length  : %d DWORDS or %d Bytes", (unsigned int)iph->ihl, ((unsigned int)(iph->ihl)) * 4);
+	LOG("   |-Type Of Service   : %d", (unsigned int)iph->tos);
+	LOG("   |-IP Total Length   : %d  Bytes(Size of Packet)", ntohs(iph->tot_len));
+	LOG("   |-Identification    : %d", ntohs(iph->id));
+//	LOG("   |-Reserved ZERO Field   : %d",(unsigned int)iphdr->ip_reserved_zero);
+//	LOG("   |-Dont Fragment Field   : %d",(unsigned int)iphdr->ip_dont_fragment);
+//	LOG("   |-More Fragment Field   : %d",(unsigned int)iphdr->ip_more_fragment);
+	LOG("   |-TTL      : %d", (unsigned int)iph->ttl);
+	LOG("   |-Protocol : %d", (unsigned int)iph->protocol);
+	LOG("   |-Checksum : %d", ntohs(iph->check));
+	LOG("   |-Source IP        : %s", inet_ntoa(source.sin_addr));
+	LOG("   |-Destination IP   : %s", inet_ntoa(dest.sin_addr));
 }
 
 static void print_tcp_packet(unsigned char *buf, int len)
@@ -298,7 +130,7 @@ static void print_tcp_packet(unsigned char *buf, int len)
 	struct tcphdr *tcph;
 	int hdrlen;
 
-	LOG("\n\n***********************TCP Packet*************************\n");
+	LOG("\n\n***********************TCP Packet*************************");
 	print_ip_header(buf, len);
 
 	if (!logfp)
@@ -309,35 +141,35 @@ static void print_tcp_packet(unsigned char *buf, int len)
 	tcph = (struct tcphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
 	hdrlen = sizeof(struct ethhdr) + iphdrlen + tcph->doff * 4;
 
-	LOG("\n");
-	LOG("TCP Header\n");
-	LOG("   |-Source Port      : %u\n", ntohs(tcph->source));
-	LOG("   |-Destination Port : %u\n", ntohs(tcph->dest));
-	LOG("   |-Sequence Number    : %u\n", ntohl(tcph->seq));
-	LOG("   |-Acknowledge Number : %u\n", ntohl(tcph->ack_seq));
-	LOG("   |-Header Length      : %d DWORDS or %d BYTES\n", (unsigned int)tcph->doff, (unsigned int)tcph->doff * 4);
-//      LOG("   |-CWR Flag : %d\n",(unsigned int)tcph->cwr);
-//      LOG("   |-ECN Flag : %d\n",(unsigned int)tcph->ece);
-	LOG("   |-Urgent Flag          : %d\n", (unsigned int)tcph->urg);
-	LOG("   |-Acknowledgement Flag : %d\n", (unsigned int)tcph->ack);
-	LOG("   |-Push Flag            : %d\n", (unsigned int)tcph->psh);
-	LOG("   |-Reset Flag           : %d\n", (unsigned int)tcph->rst);
-	LOG("   |-Synchronise Flag     : %d\n", (unsigned int)tcph->syn);
-	LOG("   |-Finish Flag          : %d\n", (unsigned int)tcph->fin);
-	LOG("   |-Window         : %d\n", ntohs(tcph->window));
-	LOG("   |-Checksum       : %d\n", ntohs(tcph->check));
-	LOG("   |-Urgent Pointer : %d\n", tcph->urg_ptr);
-	LOG("\n");
+	LOG("");
+	LOG("TCP Header");
+	LOG("   |-Source Port      : %u", ntohs(tcph->source));
+	LOG("   |-Destination Port : %u", ntohs(tcph->dest));
+	LOG("   |-Sequence Number    : %u", ntohl(tcph->seq));
+	LOG("   |-Acknowledge Number : %u", ntohl(tcph->ack_seq));
+	LOG("   |-Header Length      : %d DWORDS or %d BYTES", (unsigned int)tcph->doff, (unsigned int)tcph->doff * 4);
+//      LOG("   |-CWR Flag : %d",(unsigned int)tcph->cwr);
+//      LOG("   |-ECN Flag : %d",(unsigned int)tcph->ece);
+	LOG("   |-Urgent Flag          : %d", (unsigned int)tcph->urg);
+	LOG("   |-Acknowledgement Flag : %d", (unsigned int)tcph->ack);
+	LOG("   |-Push Flag            : %d", (unsigned int)tcph->psh);
+	LOG("   |-Reset Flag           : %d", (unsigned int)tcph->rst);
+	LOG("   |-Synchronise Flag     : %d", (unsigned int)tcph->syn);
+	LOG("   |-Finish Flag          : %d", (unsigned int)tcph->fin);
+	LOG("   |-Window         : %d", ntohs(tcph->window));
+	LOG("   |-Checksum       : %d", ntohs(tcph->check));
+	LOG("   |-Urgent Pointer : %d", tcph->urg_ptr);
+	LOG("");
 	LOG("                        DATA Dump                         ");
-	LOG("\n");
+	LOG("");
 
-	LOG("IP Header\n");
+	LOG("IP Header");
 	print_payload(buf, iphdrlen);
 
-	LOG("TCP Header\n");
+	LOG("TCP Header");
 	print_payload(buf + iphdrlen, tcph->doff * 4);
 
-	LOG("Data Payload\n");
+	LOG("Data Payload");
 	print_payload(buf + hdrlen, len - hdrlen);
 
 	LOG("\n###########################################################");
@@ -350,7 +182,7 @@ static void print_udp_packet(unsigned char *buf, int len)
 	struct udphdr *udph;
 	int hdrlen;
 
-	LOG("\n\n***********************UDP Packet*************************\n");
+	LOG("\n\n***********************UDP Packet*************************");
 	print_ip_header(buf, len);
 
 	if (!logfp)
@@ -361,20 +193,20 @@ static void print_udp_packet(unsigned char *buf, int len)
 	udph = (struct udphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
 	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof(udph);
 
-	LOG("\nUDP Header\n");
-	LOG("   |-Source Port      : %d\n", ntohs(udph->source));
-	LOG("   |-Destination Port : %d\n", ntohs(udph->dest));
-	LOG("   |-UDP Length       : %d\n", ntohs(udph->len));
-	LOG("   |-UDP Checksum     : %d\n", ntohs(udph->check));
+	LOG("\nUDP Header");
+	LOG("   |-Source Port      : %d", ntohs(udph->source));
+	LOG("   |-Destination Port : %d", ntohs(udph->dest));
+	LOG("   |-UDP Length       : %d", ntohs(udph->len));
+	LOG("   |-UDP Checksum     : %d", ntohs(udph->check));
 
-	LOG("\n");
-	LOG("IP Header\n");
+	LOG("");
+	LOG("IP Header");
 	print_payload(buf, iphdrlen);
 
-	LOG("UDP Header\n");
+	LOG("UDP Header");
 	print_payload(buf + iphdrlen, sizeof udph);
 
-	LOG("Data Payload\n");
+	LOG("Data Payload");
 
 	/* Move the pointer ahead and reduce the size of string */
 	print_payload(buf + hdrlen, len - hdrlen);
@@ -389,7 +221,7 @@ static void print_icmp_packet(unsigned char *buf, int len)
 	struct icmphdr *icmph;
 	int hdrlen;
 
-	LOG("\n\n***********************ICMP Packet*************************\n");
+	LOG("\n\n***********************ICMP Packet*************************");
 	print_ip_header(buf, len);
 
 	if (!logfp)
@@ -400,29 +232,29 @@ static void print_icmp_packet(unsigned char *buf, int len)
 	icmph = (struct icmphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
 	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof icmph;
 
-	LOG("\n");
-	LOG("ICMP Header\n");
+	LOG("");
+	LOG("ICMP Header");
 	LOG("   |-Type : %d", (unsigned int)(icmph->type));
 
 	if ((unsigned int)(icmph->type) == 11) {
-		LOG("  (TTL Expired)\n");
+		LOG("  (TTL Expired)");
 	} else if ((unsigned int)(icmph->type) == ICMP_ECHOREPLY) {
-		LOG("  (ICMP Echo Reply)\n");
+		LOG("  (ICMP Echo Reply)");
 	}
 
-	LOG("   |-Code : %d\n", (unsigned int)(icmph->code));
-	LOG("   |-Checksum : %d\n", ntohs(icmph->checksum));
-//      LOG("   |-ID       : %d\n",ntohs(icmph->id));
-//      LOG("   |-Sequence : %d\n",ntohs(icmph->sequence));
-	LOG("\n");
+	LOG("   |-Code : %d", (unsigned int)(icmph->code));
+	LOG("   |-Checksum : %d", ntohs(icmph->checksum));
+//      LOG("   |-ID       : %d",ntohs(icmph->id));
+//      LOG("   |-Sequence : %d",ntohs(icmph->sequence));
+	LOG("");
 
-	LOG("IP Header\n");
+	LOG("IP Header");
 	print_payload(buf, iphdrlen);
 
-	LOG("UDP Header\n");
+	LOG("UDP Header");
 	print_payload(buf + iphdrlen, sizeof icmph);
 
-	LOG("Data Payload\n");
+	LOG("Data Payload");
 
 	/* Move the pointer ahead and reduce the size of string */
 	print_payload(buf + hdrlen, (len - hdrlen));
@@ -468,7 +300,7 @@ static void process(unsigned char *buf, int size)
 
 static void sigcb(int signo)
 {
-	DBG("Got signal %d\n", signo);
+	DBG("Got signal %d", signo);
 	printf("\e[?25h");
 	running = 0;
 }
