@@ -58,6 +58,9 @@ void print_payload(unsigned char *data, int len)
 {
 	int i, j;
 
+	if (!logfp)
+		return;
+
 	for (i = 0; i < len; i++) {
 		if (i != 0 && i % 16 == 0) {
 			LOG("         ");
@@ -127,6 +130,9 @@ void print_ethernet_header(unsigned char *buf, int len)
 {
 	struct ethhdr *eth = (struct ethhdr *)buf;
 
+	if (!logfp)
+		return;
+
 	LOG("\n");
 	LOG("Ethernet Header\n");
 	LOG("   |-Destination Address : %.2X:%.2X:%.2X:%.2X:%.2X:%.2X \n", eth->h_dest[0], eth->h_dest[1],
@@ -144,6 +150,9 @@ void print_ip_header(unsigned char *buf, int len)
 	db_add(buf, len);
 
 	print_ethernet_header(buf, len);
+
+	if (!logfp)
+		return;
 
 	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
@@ -178,14 +187,16 @@ void print_tcp_packet(unsigned char *buf, int len)
 	struct tcphdr *tcph;
 	int hdrlen;
 
+	LOG("\n\n***********************TCP Packet*************************\n");
+	print_ip_header(buf, len);
+
+	if (!logfp)
+		return;
+
 	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
 	tcph = (struct tcphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
 	hdrlen = sizeof(struct ethhdr) + iphdrlen + tcph->doff * 4;
-
-	LOG("\n\n***********************TCP Packet*************************\n");
-
-	print_ip_header(buf, len);
 
 	LOG("\n");
 	LOG("TCP Header\n");
@@ -228,14 +239,16 @@ void print_udp_packet(unsigned char *buf, int len)
 	struct udphdr *udph;
 	int hdrlen;
 
+	LOG("\n\n***********************UDP Packet*************************\n");
+	print_ip_header(buf, len);
+
+	if (!logfp)
+		return;
+
 	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
 	udph = (struct udphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
 	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof(udph);
-
-	LOG("\n\n***********************UDP Packet*************************\n");
-
-	print_ip_header(buf, len);
 
 	LOG("\nUDP Header\n");
 	LOG("   |-Source Port      : %d\n", ntohs(udph->source));
@@ -265,17 +278,18 @@ void print_icmp_packet(unsigned char *buf, int len)
 	struct icmphdr *icmph;
 	int hdrlen;
 
+	LOG("\n\n***********************ICMP Packet*************************\n");
+	print_ip_header(buf, len);
+
+	if (!logfp)
+		return;
+
 	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
 	icmph = (struct icmphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
 	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof icmph;
 
-	LOG("\n\n***********************ICMP Packet*************************\n");
-
-	print_ip_header(buf, len);
-
 	LOG("\n");
-
 	LOG("ICMP Header\n");
 	LOG("   |-Type : %d", (unsigned int)(icmph->type));
 
