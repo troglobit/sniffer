@@ -1,4 +1,5 @@
 EXEC   = sniffer
+LDLIBS = -lsqlite3
 
 all: $(EXEC)
 
