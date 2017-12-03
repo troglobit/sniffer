@@ -317,7 +317,11 @@ int main(int argc, char *argv[])
 	char *ifname = NULL;
 	int sd, ret;
 
-	printf("Starting...\n");
+	if (argc != 2)
+		errx(1, "Usage: %s IFNAME", argv[0]);
+	ifname = argv[1];
+
+	printf("Starting %s on iface %s ...\n", argv[0], ifname);
 	signal(SIGTERM, sigcb);
 	signal(SIGQUIT, SIG_IGN);
 	signal(SIGUSR1, SIG_IGN);
@@ -333,12 +337,9 @@ int main(int argc, char *argv[])
 	if (sd < 0)
 		err(1, "Failed opening RAW socket");
 
-	if (argc > 1) {
-		ifname = argv[1];
-		ret = setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
-		if (ret < 0)
-			err(1, "Failed binding socket to ifname %s", ifname);
-	}
+	ret = setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
+	if (ret < 0)
+		err(1, "Failed binding socket to ifname %s", ifname);
 
 	logfile = fopen("log.txt", "w");
 	if (logfile == NULL)
