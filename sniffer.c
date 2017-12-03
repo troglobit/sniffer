@@ -318,6 +318,7 @@ void process(unsigned char *buf, int size)
 
 	case 2:			/* IGMP Protocol */
 		igmp++;
+		print_ip_header(buf, size);
 		break;
 
 	case 6:			/* TCP Protocol */
