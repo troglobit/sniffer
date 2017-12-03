@@ -98,10 +98,15 @@ static void db_add(unsigned char *buf, int len)
 {
 	static FILE *fp = NULL;
 	struct ethhdr *eth = (struct ethhdr *)buf;
-	unsigned short iphdrlen, ip_off;
+	unsigned short offset = 0, iphdrlen, ip_off, type;
 	struct iphdr *iph;
 
-	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
+	type = ntohs(eth->h_proto);
+	if (type == 0x0d5a) {
+		offset = 12;
+//		type = ntohs((eth + 10)->h_proto);
+	}
+	iph = (struct iphdr *)(buf + offset + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
 
 	memset(&source, 0, sizeof(source));
@@ -125,7 +130,7 @@ static void db_add(unsigned char *buf, int len)
 		eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
 	fprintf(fp, "SMAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X | ", eth->h_source[0], eth->h_source[1],
 		eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-	fprintf(fp, "TYPE: 0x%.4X | ", (unsigned short)ntohs(eth->h_proto));
+	fprintf(fp, "TYPE: 0x%.4X | ", (unsigned short)type);
 	fprintf(fp, "IPv%d | ", (unsigned int)iph->version);
 	fprintf(fp, "SIP: %15s |", inet_ntoa(source.sin_addr));
 	fprintf(fp, "DIP: %15s ]\n", inet_ntoa(dest.sin_addr));
