@@ -91,9 +91,9 @@ void print_ethernet_header(unsigned char *buf, int len)
 	LOG("\n");
 	LOG("Ethernet Header\n");
 	LOG("   |-Destination Address : %.2X:%.2X:%.2X:%.2X:%.2X:%.2X \n", eth->h_dest[0], eth->h_dest[1],
-		eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+	    eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
 	LOG("   |-Source Address      : %.2X:%.2X:%.2X:%.2X:%.2X:%.2X \n", eth->h_source[0], eth->h_source[1],
-		eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+	    eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
 	LOG("   |-Protocol            : %u \n", (unsigned short)eth->h_proto);
 }
 
@@ -104,7 +104,7 @@ void print_ip_header(unsigned char *buf, int len)
 
 	print_ethernet_header(buf, len);
 
-	iph      = (struct iphdr *)(buf + sizeof(struct ethhdr));
+	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
 
 	memset(&source, 0, sizeof(source));
@@ -116,14 +116,13 @@ void print_ip_header(unsigned char *buf, int len)
 	LOG("\n");
 	LOG("IP Header\n");
 	LOG("   |-IP Version        : %d\n", (unsigned int)iph->version);
-	LOG("   |-IP Header Length  : %d DWORDS or %d Bytes\n", (unsigned int)iph->ihl,
-		((unsigned int)(iph->ihl)) * 4);
+	LOG("   |-IP Header Length  : %d DWORDS or %d Bytes\n", (unsigned int)iph->ihl, ((unsigned int)(iph->ihl)) * 4);
 	LOG("   |-Type Of Service   : %d\n", (unsigned int)iph->tos);
 	LOG("   |-IP Total Length   : %d  Bytes(Size of Packet)\n", ntohs(iph->tot_len));
 	LOG("   |-Identification    : %d\n", ntohs(iph->id));
-//	fprintf(logfile , "   |-Reserved ZERO Field   : %d\n",(unsigned int)iphdr->ip_reserved_zero);
-//	fprintf(logfile , "   |-Dont Fragment Field   : %d\n",(unsigned int)iphdr->ip_dont_fragment);
-//	fprintf(logfile , "   |-More Fragment Field   : %d\n",(unsigned int)iphdr->ip_more_fragment);
+//	LOG("   |-Reserved ZERO Field   : %d\n",(unsigned int)iphdr->ip_reserved_zero);
+//	LOG("   |-Dont Fragment Field   : %d\n",(unsigned int)iphdr->ip_dont_fragment);
+//	LOG("   |-More Fragment Field   : %d\n",(unsigned int)iphdr->ip_more_fragment);
 	LOG("   |-TTL      : %d\n", (unsigned int)iph->ttl);
 	LOG("   |-Protocol : %d\n", (unsigned int)iph->protocol);
 	LOG("   |-Checksum : %d\n", ntohs(iph->check));
@@ -138,10 +137,10 @@ void print_tcp_packet(unsigned char *buf, int len)
 	struct tcphdr *tcph;
 	int hdrlen;
 
-	iph      = (struct iphdr *)(buf + sizeof(struct ethhdr));
+	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
-	tcph     = (struct tcphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
-	hdrlen   = sizeof(struct ethhdr) + iphdrlen + tcph->doff * 4;
+	tcph = (struct tcphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
+	hdrlen = sizeof(struct ethhdr) + iphdrlen + tcph->doff * 4;
 
 	LOG("\n\n***********************TCP Packet*************************\n");
 
@@ -153,10 +152,9 @@ void print_tcp_packet(unsigned char *buf, int len)
 	LOG("   |-Destination Port : %u\n", ntohs(tcph->dest));
 	LOG("   |-Sequence Number    : %u\n", ntohl(tcph->seq));
 	LOG("   |-Acknowledge Number : %u\n", ntohl(tcph->ack_seq));
-	LOG("   |-Header Length      : %d DWORDS or %d BYTES\n", (unsigned int)tcph->doff,
-		(unsigned int)tcph->doff * 4);
-//	fprintf(logfile , "   |-CWR Flag : %d\n",(unsigned int)tcph->cwr);
-//	fprintf(logfile , "   |-ECN Flag : %d\n",(unsigned int)tcph->ece);
+	LOG("   |-Header Length      : %d DWORDS or %d BYTES\n", (unsigned int)tcph->doff, (unsigned int)tcph->doff * 4);
+//      LOG("   |-CWR Flag : %d\n",(unsigned int)tcph->cwr);
+//      LOG("   |-ECN Flag : %d\n",(unsigned int)tcph->ece);
 	LOG("   |-Urgent Flag          : %d\n", (unsigned int)tcph->urg);
 	LOG("   |-Acknowledgement Flag : %d\n", (unsigned int)tcph->ack);
 	LOG("   |-Push Flag            : %d\n", (unsigned int)tcph->psh);
@@ -189,10 +187,10 @@ void print_udp_packet(unsigned char *buf, int len)
 	struct udphdr *udph;
 	int hdrlen;
 
-	iph      = (struct iphdr *)(buf + sizeof(struct ethhdr));
+	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
-	udph     = (struct udphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
-	hdrlen   = sizeof(struct ethhdr) + iphdrlen + sizeof(udph);
+	udph = (struct udphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
+	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof(udph);
 
 	LOG("\n\n***********************UDP Packet*************************\n");
 
@@ -226,10 +224,10 @@ void print_icmp_packet(unsigned char *buf, int len)
 	struct icmphdr *icmph;
 	int hdrlen;
 
-	iph      = (struct iphdr *)(buf + sizeof(struct ethhdr));
+	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
-	icmph    = (struct icmphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
-	hdrlen   = sizeof(struct ethhdr) + iphdrlen + sizeof icmph;
+	icmph = (struct icmphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
+	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof icmph;
 
 	LOG("\n\n***********************ICMP Packet*************************\n");
 
@@ -248,8 +246,8 @@ void print_icmp_packet(unsigned char *buf, int len)
 
 	LOG("   |-Code : %d\n", (unsigned int)(icmph->code));
 	LOG("   |-Checksum : %d\n", ntohs(icmph->checksum));
-//	fprintf(logfile , "   |-ID       : %d\n",ntohs(icmph->id));
-//	fprintf(logfile , "   |-Sequence : %d\n",ntohs(icmph->sequence));
+//      LOG("   |-ID       : %d\n",ntohs(icmph->id));
+//      LOG("   |-Sequence : %d\n",ntohs(icmph->sequence));
 	LOG("\n");
 
 	LOG("IP Header\n");
@@ -271,28 +269,27 @@ void process(unsigned char *buf, int size)
 	struct iphdr *iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 
 	++total;
-	switch (iph->protocol)
-	{
-	case 1:		/* ICMP Protocol */
+	switch (iph->protocol) {
+	case 1:			/* ICMP Protocol */
 		++icmp;
 		print_icmp_packet(buf, size);
 		break;
 
-	case 2:		/* IGMP Protocol */
+	case 2:			/* IGMP Protocol */
 		++igmp;
 		break;
 
-	case 6:		/* TCP Protocol */
+	case 6:			/* TCP Protocol */
 		++tcp;
 		print_tcp_packet(buf, size);
 		break;
 
-	case 17:	/* UDP Protocol */
+	case 17:		/* UDP Protocol */
 		++udp;
 		print_udp_packet(buf, size);
 		break;
 
-	default:	/* Some Other Protocol like ARP etc. */
+	default:		/* Some Other Protocol like ARP etc. */
 		++others;
 		break;
 	}
