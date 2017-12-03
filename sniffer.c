@@ -315,7 +315,17 @@ static void sigcb(int signo)
 
 static int usage(int code)
 {
-	errx(1, "Usage: %s IFNAME", __progname);
+	fprintf(stderr,
+		"Usage:\n"
+		"  %s IFNAME\n"
+		"\n"
+		"Options:\n"
+		"  -h       This help text\n"
+		"  -l FILE  Log all packets to FILE\n"
+		"\n",
+		__progname);
+
+	return code;
 }
 
 int main(int argc, char *argv[])
