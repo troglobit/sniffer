@@ -45,11 +45,11 @@
 #define DBG(args...) if (debug)   fprintf(stderr, ##args)
 #define LOG(args...) if (logfile) fprintf(logfile, ##args)
 
-FILE *logfile;
-struct sockaddr_in source, dest;
-unsigned long long tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0, i, j;
+static FILE *logfile = NULL;
+static struct sockaddr_in source, dest;
 static int debug = 0;
 static int running = 1;
+static unsigned long long tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0;
 
 void print_payload(unsigned char *data, int len)
 {
