@@ -54,7 +54,7 @@ static int debug = 0;
 static int running = 1;
 static unsigned long long tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0;
 
-void print_payload(unsigned char *data, int len)
+static void print_payload(unsigned char *data, int len)
 {
 	int i, j;
 
@@ -137,7 +137,7 @@ static void db_add(unsigned char *buf, int len)
 	fflush(fp);
 }
 
-void print_ethernet_header(unsigned char *buf, int len)
+static void print_ethernet_header(unsigned char *buf, int len)
 {
 	struct ethhdr *eth = (struct ethhdr *)buf;
 
@@ -153,7 +153,7 @@ void print_ethernet_header(unsigned char *buf, int len)
 	LOG("   |-Protocol            : %u \n", (unsigned short)eth->h_proto);
 }
 
-void print_ip_header(unsigned char *buf, int len)
+static void print_ip_header(unsigned char *buf, int len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -191,7 +191,7 @@ void print_ip_header(unsigned char *buf, int len)
 	LOG("   |-Destination IP   : %s\n", inet_ntoa(dest.sin_addr));
 }
 
-void print_tcp_packet(unsigned char *buf, int len)
+static void print_tcp_packet(unsigned char *buf, int len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -243,7 +243,7 @@ void print_tcp_packet(unsigned char *buf, int len)
 	LOG("\n###########################################################");
 }
 
-void print_udp_packet(unsigned char *buf, int len)
+static void print_udp_packet(unsigned char *buf, int len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -282,7 +282,7 @@ void print_udp_packet(unsigned char *buf, int len)
 	LOG("\n###########################################################");
 }
 
-void print_icmp_packet(unsigned char *buf, int len)
+static void print_icmp_packet(unsigned char *buf, int len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -330,7 +330,7 @@ void print_icmp_packet(unsigned char *buf, int len)
 	LOG("\n###########################################################");
 }
 
-void process(unsigned char *buf, int size)
+static void process(unsigned char *buf, int size)
 {
 	struct iphdr *iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 
