@@ -33,7 +33,7 @@ int db_open(char *ifname)
 			return 1;
 	}
 
-	sql = "CREATE TABLE " DBTABLE "("
+	sql = "CREATE TABLE IF NOT EXISTS " DBTABLE "("
 		"ID INTEGER PRIMARY KEY AUTOINCREMENT,"
 		"DMAC           TEXT    NOT NULL,"
 		"SMAC           TEXT    NOT NULL,"
