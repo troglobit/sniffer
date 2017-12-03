@@ -320,6 +320,7 @@ static int usage(int code)
 		"  %s IFNAME\n"
 		"\n"
 		"Options:\n"
+		"  -d       Enable debug messages to log\n"
 		"  -h       This help text\n"
 		"  -l FILE  Log all packets to FILE\n"
 		"\n",
@@ -337,8 +338,12 @@ int main(int argc, char *argv[])
 	char *logfile = NULL, *ifname = NULL;
 	int sd, ret;
 
-	while ((ret = getopt(argc, argv, "hl:")) != EOF) {
+	while ((ret = getopt(argc, argv, "dhl:")) != EOF) {
 		switch (ret) {
+		case 'd':
+			debug = 1;
+			break;
+
 		case 'l':
 			logfile = optarg;
 			break;
