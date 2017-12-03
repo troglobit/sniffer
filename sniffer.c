@@ -98,7 +98,7 @@ static void db_add(unsigned char *buf, int len)
 {
 	static FILE *fp = NULL;
 	struct ethhdr *eth = (struct ethhdr *)buf;
-	unsigned short iphdrlen;
+	unsigned short iphdrlen, ip_off;
 	struct iphdr *iph;
 
 	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
@@ -115,6 +115,11 @@ static void db_add(unsigned char *buf, int len)
 		if (!fp)
 			return;
 	}
+
+	/* Skip fragments ... */
+	ip_off = ntohs(iph->frag_off);
+	if (ip_off & 0x1fff)
+		return;
 
 	fprintf(fp, "[ DMAC: %.2X:%.2X:%.2X:%.2X:%.2X:%.2X | ", eth->h_dest[0], eth->h_dest[1],
 		eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
