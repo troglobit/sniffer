@@ -344,12 +344,15 @@ int main(int argc, char *argv[])
 			debug = 1;
 			break;
 
+		case 'h':
+			return usage(0);
+
 		case 'l':
 			logfile = optarg;
 			break;
 
 		default:
-			return usage(0);
+			return usage(1);
 		}
 	}
 
