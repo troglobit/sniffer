@@ -47,7 +47,7 @@ int db_open(char *ifname)
 		sqlite3_free(err);
 		return 1;
 	}
-	warnx("db %s open, table %s created successfully", path, DBTABLE);
+	DBG("db %s open, table %s created successfully", path, DBTABLE);
 
 	return 0;
 }
