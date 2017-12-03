@@ -43,8 +43,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define DBG(args...) if (debug)   fprintf(stderr, ##args)
-#define LOG(args...) if (logfp) fprintf(logfp, ##args)
+#define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt, ##args)
+#define DBG(fmt, args...) if (debug) LOG(fmt, ##args)
 
 extern char *__progname;
 
