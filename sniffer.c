@@ -298,7 +298,7 @@ void process(unsigned char *buf, int size)
 		break;
 	}
 
-	printf("\r\e[KTCP: %lld  UDP: %lld  ICMP: %lld  IGMP: %lld  Others: %lld  Total: %lld",
+	printf("\r\e[KTCP: %llu  UDP: %llu  ICMP: %llu  IGMP: %llu  Others: %llu  Total: %llu",
 	       tcp, udp, icmp, igmp, others, total);
 	fflush(stdout);
 }
