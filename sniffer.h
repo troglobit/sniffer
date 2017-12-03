@@ -31,6 +31,8 @@
 #define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt "\n", ##args)
 #define DBG(fmt, args...) if (debug) LOG(fmt, ##args)
 
+extern int debug;
+extern FILE *logfp;
 extern char *__progname;
 
 int   db_open   (char *ifname);
