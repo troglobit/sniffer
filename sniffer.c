@@ -45,7 +45,7 @@
 
 FILE *logfile;
 struct sockaddr_in source, dest;
-int tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0, i, j;
+unsigned long long tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0, i, j;
 
 void print_payload(unsigned char *data, int len)
 {
@@ -268,32 +268,34 @@ void process(unsigned char *buf, int size)
 {
 	struct iphdr *iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 
-	++total;
+	total++;
 	switch (iph->protocol) {
 	case 1:			/* ICMP Protocol */
-		++icmp;
+		icmp++;
 		print_icmp_packet(buf, size);
 		break;
 
 	case 2:			/* IGMP Protocol */
-		++igmp;
+		igmp++;
 		break;
 
 	case 6:			/* TCP Protocol */
-		++tcp;
+		tcp++;
 		print_tcp_packet(buf, size);
 		break;
 
 	case 17:		/* UDP Protocol */
-		++udp;
+		udp++;
 		print_udp_packet(buf, size);
 		break;
 
 	default:		/* Some Other Protocol like ARP etc. */
-		++others;
+		others++;
 		break;
 	}
-	printf("TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r", tcp, udp, icmp, igmp, others, total);
+
+	printf("TCP: %lld  UDP: %lld  ICMP: %lld  IGMP: %lld  Others: %lld  Total: %lld\r",
+	       tcp, udp, icmp, igmp, others, total);
 }
 
 int main(int argc, char *argv[])
