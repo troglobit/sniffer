@@ -23,6 +23,7 @@
 #include <err.h>
 #include <errno.h>
 #include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,11 +42,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define DBG(args...) if (debug)   fprintf(stderr, ##args)
 #define LOG(args...) if (logfile) fprintf(logfile, ##args)
 
 FILE *logfile;
 struct sockaddr_in source, dest;
 unsigned long long tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0, i, j;
+static int debug = 0;
+static int running = 1;
 
 void print_payload(unsigned char *data, int len)
 {
@@ -298,6 +302,12 @@ void process(unsigned char *buf, int size)
 	       tcp, udp, icmp, igmp, others, total);
 }
 
+static void sigcb(int signo)
+{
+	DBG("Got signal %d\n", signo);
+	running = 0;
+}
+
 int main(int argc, char *argv[])
 {
 	struct sockaddr sa;
@@ -312,6 +322,12 @@ int main(int argc, char *argv[])
 		printf("Unable to create log.txt file.");
 	}
 	printf("Starting...\n");
+	signal(SIGTERM, sigcb);
+	signal(SIGQUIT, SIG_IGN);
+	signal(SIGUSR1, SIG_IGN);
+	signal(SIGUSR2, SIG_IGN);
+	signal(SIGINT, sigcb);
+	signal(SIGHUP, SIG_IGN);
 
 	buf = malloc(BUFSIZ);
 	if (!buf)
@@ -328,7 +344,7 @@ int main(int argc, char *argv[])
 			err(1, "Failed binding socket to ifname %s", ifname);
 	}
 
-	while (1) {
+	while (running) {
 		len = sizeof(sa);
 		sz = recvfrom(sd, buf, BUFSIZ, 0, &sa, &len);
 		if (sz < 0)
