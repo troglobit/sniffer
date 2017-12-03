@@ -317,10 +317,6 @@ int main(int argc, char *argv[])
 	char *ifname = NULL;
 	int sd, ret;
 
-	logfile = fopen("log.txt", "w");
-	if (logfile == NULL) {
-		printf("Unable to create log.txt file.");
-	}
 	printf("Starting...\n");
 	signal(SIGTERM, sigcb);
 	signal(SIGQUIT, SIG_IGN);
@@ -343,6 +339,10 @@ int main(int argc, char *argv[])
 		if (ret < 0)
 			err(1, "Failed binding socket to ifname %s", ifname);
 	}
+
+	logfile = fopen("log.txt", "w");
+	if (logfile == NULL)
+		printf("Unable to create log.txt file.");
 
 	while (running) {
 		len = sizeof(sa);
