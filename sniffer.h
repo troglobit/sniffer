@@ -4,6 +4,7 @@
 #include <err.h>
 #include <errno.h>
 #include <getopt.h>
+#include <libgen.h>		/* dirname() */
 #include <netdb.h>
 #include <paths.h>
 #include <signal.h>
@@ -11,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
@@ -23,6 +25,7 @@
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -58,15 +61,23 @@ int   db_open   (char *ifname);
 int   db_close  (void);
 void  db_insert (struct snif *snif);
 
-static inline char *get_path(char *ifname, char *ext)
+static inline char *get_path(char *fn, char *ext)
 {
+	char *dir;
 	static char path[128];
 
 	if (getuid() > 0)
-		snprintf(path, sizeof(path), _PATH_VARRUN "user/%d/" FNBASE "%s",
-			 getuid(), ifname, ext);
+		snprintf(path, sizeof(path), _PATH_VARRUN "user/%d/" FNBASE "%s", getuid(), fn, ext);
 	else
-		snprintf(path, sizeof(path), _PATH_VARRUN FNBASE "%s", ifname, ext);
+		snprintf(path, sizeof(path), _PATH_VARRUN "%s/" FNBASE "%s", __progname, fn, ext);
+
+	dir = strdup(path);
+	if (!dir)
+		return NULL;
+	dir = dirname(dir);
+	if (access(dir, W_OK))
+		mkdir(dir, 0755);
+	free(dir);
 
 	return path;
 }
