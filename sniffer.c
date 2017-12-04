@@ -395,8 +395,13 @@ static void sigcb(int signo)
 {
 	DBG("Got signal %d", signo);
 	if (signo == SIGHUP) {
-		printf("\nChanging %s to MONITOR mode ...\n", __progname);
-		mode = 1;
+		if (!mode) {
+			printf("\nChanging %s to MONITOR mode ...\n", __progname);
+			mode = 1;
+		} else {
+			printf("\nChanging %s to LEARNING mode ...\n", __progname);
+			mode = 0;
+		}
 		return;
 	}
 
