@@ -51,7 +51,7 @@ int db_close(void)
 		redisFree(c);
 }
 
-void fprint_mac(FILE *fp, const char *mac)
+void fprint_mac(FILE *fp, const unsigned char *mac)
 {
 	fprintf(fp, "%2.2x:%2.2x:%2.2x:%2.2x:%2.2x:%2.2x",
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
