@@ -31,7 +31,8 @@
 #include <unistd.h>
 
 #define _PATH_SNIFFER "/var/lib/sniffer/"
-#define DBTABLE       "FRAME"
+#define DB_GOOD       "frameGood"
+#define DB_BAD        "frameBad"
 #define FNBASE        "sniffer-%s"
 
 #define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt "\n", ##args)
@@ -65,7 +66,8 @@ extern char *__progname;
 
 int   db_open   (char *ifname);
 int   db_close  (void);
-void  db_insert (struct snif *snif);
+int   db_find   (char *table, struct snif *snif);
+void  db_insert (char *table, struct snif *snif);
 
 static inline char *get_path(char *fn, char *ext)
 {

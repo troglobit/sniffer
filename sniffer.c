@@ -363,11 +363,19 @@ static void process(unsigned char *buf, size_t len)
 		if (csv)
 			csv_insert(&snif);
 		else
-			db_insert(&snif);
+			db_insert(DB_GOOD, &snif);
 	}
 
 	printf("\r\e[KTCP: %llu  UDP: %llu  ICMP: %llu  IGMP: %llu  Others: %llu  Total: %llu",
 	       tcp, udp, icmp, igmp, others, total);
+	if (mode) {
+		int found;
+
+		found = db_find(DB_GOOD, &snif);
+		printf(" => %s", found ? "OK" : "INTRUSION DETECTED!\n");
+		if (!found)
+			db_insert(DB_BAD, &snif);
+	}
 	fflush(stdout);
 }
 
