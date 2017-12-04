@@ -431,10 +431,10 @@ int main(int argc, char *argv[])
 	socklen_t len;
 	ssize_t sz;
 	char *fn = NULL, *logfile = NULL, *ifname = NULL;
-	int sd, ret;
+	int sd, rc;
 
-	while ((ret = getopt(argc, argv, "cdf:hl:x")) != EOF) {
-		switch (ret) {
+	while ((rc = getopt(argc, argv, "cdf:hl:x")) != EOF) {
+		switch (rc) {
 		case 'c':
 			csv = 1;
 			break;
@@ -487,8 +487,8 @@ int main(int argc, char *argv[])
 	if (sd < 0)
 		err(1, "Failed opening RAW socket");
 
-	ret = setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
-	if (ret < 0)
+	rc = setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
+	if (rc < 0)
 		err(1, "Failed binding socket to ifname %s", ifname);
 
 	strncpy(ifr.ifr_name, ifname, IF_NAMESIZE);
