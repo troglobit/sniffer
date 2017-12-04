@@ -302,16 +302,16 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 	memset(&dest, 0, sizeof(dest));
 	dest.sin_addr.s_addr = iph->daddr;
 
-	/* Skip fragments ... */
-	ip_off = ntohs(iph->frag_off);
-	if (ip_off & 0x1fff)
-		return 1;
-
 	memcpy(snif->dmac, eth->h_dest, ETH_ALEN);
 	memcpy(snif->smac, eth->h_source, ETH_ALEN);
 	snif->ethtype = type;
 	/* IPv4 */
 	if (snif->ethtype == 0x0800) {
+		/* Skip fragments ... */
+		ip_off = ntohs(iph->frag_off);
+		if (ip_off & 0x1fff)
+			return 1;
+
 		snif->proto = iph->protocol;
 		snif->sip   = source.sin_addr;
 		snif->dip   = dest.sin_addr;
