@@ -84,7 +84,11 @@ void db_insert(struct snif *snif)
 			return;
 		}
 
-		fprintf(fp, "[ DMAC: %s | ", dmac);
+		fprintf(fp, "[ PORT: %d%c | VID: %d | PRIO: %d | ",
+			(int)snif->port, snif->tagged ? 'T' : 'U', (int)snif->vid,
+			(int)snif->prio);
+		fprintf(fp, " %s | ", snif->dir ? "RX" : "TX");
+		fprintf(fp, "DMAC: %s | ", dmac);
 		fprintf(fp, "SMAC: %s | ", smac);
 		fprintf(fp, "TYPE: %s | ", ethtype);
 //		fprintf(fp, "IPv%d | ", (unsigned int)iph->version);

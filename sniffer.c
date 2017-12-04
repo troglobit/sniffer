@@ -267,11 +267,28 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 	struct iphdr *iph;
 	struct tcphdr *tcph;
 
+	memset(snif, 0, sizeof(*snif));
+
 	type = ntohs(eth->h_proto);
-	if (type == 0x0d5a) {
+	if (type == 0xd5a) {
+		uint32_t dsa;
+
 		offset = 12;
-//		type = ntohs((eth + 10)->h_proto);
+		/* Skip DA+SA and four bytes 0x0d5a0000 */
+		memcpy(snif->dsa, &buf[2 * ETH_ALEN + 4], sizeof(snif->dsa));
+		type = ntohs((eth + 10)->h_proto);
+
+		dsa  =  (snif->dsa[0] << 24) |
+			(snif->dsa[1] << 16) |
+			(snif->dsa[2] <<  8) |
+			(snif->dsa[3] <<  0);
+		snif->port   = (dsa >> 19) & 0x1f;
+		snif->vid    =  dsa        & 0xfff;
+		snif->dir    = (dsa >> 18) & 0x1;
+		snif->tagged = (dsa >> 29) & 0x1;
+		snif->prio   = (dsa >> 13) & 0x7;
 	}
+
 	iph = (struct iphdr *)(buf + offset + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
 	tcph = (struct tcphdr *)(buf + offset + iphdrlen + sizeof(struct ethhdr));
@@ -287,7 +304,6 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 	if (ip_off & 0x1fff)
 		return 1;
 
-	memset(snif, 0, sizeof(*snif));
 	memcpy(snif->dmac, eth->h_dest, ETH_ALEN);
 	memcpy(snif->smac, eth->h_source, ETH_ALEN);
 	snif->ethtype = type;

@@ -34,8 +34,11 @@
 
 struct snif {
 	uint8_t         dmac[ETH_ALEN], smac[ETH_ALEN];
-	uint8_t         dsa[8];
 	uint16_t        ethtype;
+
+	uint8_t         dsa[8];
+	uint8_t         port, dir, prio, tagged;
+	uint16_t        vid;
 
 	/* IP header (IPv4 only for now) */
 	uint8_t         proto;
