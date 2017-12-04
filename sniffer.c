@@ -398,6 +398,7 @@ static int usage(int code)
 int main(int argc, char *argv[])
 {
 	struct sockaddr sa;
+	struct ifreq ifr;
 	unsigned char *buf;
 	socklen_t len;
 	ssize_t sz;
@@ -457,6 +458,15 @@ int main(int argc, char *argv[])
 	ret = setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, ifname, strlen(ifname));
 	if (ret < 0)
 		err(1, "Failed binding socket to ifname %s", ifname);
+
+	strncpy(ifr.ifr_name, ifname, IF_NAMESIZE);
+	if (ioctl(sd, SIOCGIFFLAGS, &ifr)) {
+		warn("Failed reading %s interface status", ifname);
+	} else {
+		ifr.ifr_flags |= IFF_PROMISC;
+		if (ioctl(sd, SIOCSIFFLAGS, &ifr) < 0)
+			warn("Failed setting %s in promiscuous mode", ifname);
+	}
 
 	if (csv)
 		csv_open(fn);

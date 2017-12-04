@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <net/if.h>
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/udp.h>
