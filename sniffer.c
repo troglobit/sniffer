@@ -295,6 +295,8 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 		snif->dir    = (dsa >> 18) & 0x1;
 		snif->tagged = (dsa >> 29) & 0x1;
 		snif->prio   = (dsa >> 13) & 0x7;
+
+		snif->DSA    = dsa;
 	}
 
 	if (onlydsa && !isdsa) {

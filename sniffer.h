@@ -43,6 +43,7 @@
  * id,len,dir,port,dmac,smac,vid,tagged,prio,ethtype,proto,sip,dip,sport,dport
  */
 struct snif {
+	uint32_t        DSA;
 	uint8_t         dsa[8], port, dir;
 	size_t          len;
 
