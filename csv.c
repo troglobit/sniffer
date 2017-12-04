@@ -4,11 +4,16 @@ static FILE *fp = NULL;
 
 int csv_open(char *fn)
 {
-	fp = fopen(get_path(fn, ".csv"), "w");
-	if (!fp)
+	fn = get_path(fn, ".csv");
+
+	fp = fopen(fn, "w");
+	if (!fp) {
+		fprintf(stderr, "Failed creating CSV file, %s: %s\n", fn, strerror(errno)); 
 		return -1;
+	}
 
 	fprintf(fp, "frameLen,frameDir,framePort,frameDMAC,frameSMAC,frameEthType,frameVID,frameTagged,framePrio,frameProto,frameSIP,frameDIP,frameSPORT,frameDPORT\r\n");
+
 	return 0;
 }
 
