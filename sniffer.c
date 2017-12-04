@@ -534,6 +534,7 @@ int main(int argc, char *argv[])
 	csv_close();
 	db_close();
 	printf("\nFinished.\n");
+	printf("\e[?25h");
 
 	return 0;
 }
