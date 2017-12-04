@@ -1,12 +1,14 @@
+
 EXEC   = sniffer
+OBJS   = sniffer.o csv.o sqlite.o
 LDLIBS = -lsqlite3
 
 all: $(EXEC)
 
-$(EXEC): sniffer.o sqlite.o
+$(EXEC): $(OBJS)
 
 clean:
-	$(RM) $(EXEC)
+	$(RM) $(EXEC) $(OBJS)
 
 distclean: clean
 	$(RM) *~

@@ -32,6 +32,10 @@
 #define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt "\n", ##args)
 #define DBG(fmt, args...) if (debug) LOG(fmt, ##args)
 
+/*
+ * Proposed output format, regardless of back-end:
+ * id,dir,port,vid,tagged,prio,dmac,smac,ethtype,proto,sip,dip,sport,dport
+ */
 struct snif {
 	uint8_t         dmac[ETH_ALEN], smac[ETH_ALEN];
 	uint16_t        ethtype;

@@ -20,8 +20,10 @@
  * SOFTWARE.
  */
 
+#include "csv.h"
 #include "sniffer.h"
 
+int csv = 0;
 int debug = 0;
 FILE *logfp = NULL;
 
@@ -356,7 +358,10 @@ static void process(unsigned char *buf, size_t len)
 	}
 
 	if (!format(buf, len, &snif)) {
-		db_insert(&snif);
+		if (csv)
+			csv_insert(&snif);
+		else
+			db_insert(&snif);
 	}
 
 	printf("\r\e[KTCP: %llu  UDP: %llu  ICMP: %llu  IGMP: %llu  Others: %llu  Total: %llu",
@@ -378,7 +383,9 @@ static int usage(int code)
 		"  %s IFNAME\n"
 		"\n"
 		"Options:\n"
+		"  -c       Enable CSV output, FILE.csv\n"
 		"  -d       Enable debug messages to log\n"
+		"  -f FILE  Set base FILE name for output data\n"
 		"  -h       This help text\n"
 		"  -l FILE  Log all packets to FILE\n"
 		"\n",
@@ -393,13 +400,21 @@ int main(int argc, char *argv[])
 	unsigned char *buf;
 	socklen_t len;
 	ssize_t sz;
-	char *logfile = NULL, *ifname = NULL;
+	char *fn = NULL, *logfile = NULL, *ifname = NULL;
 	int sd, ret;
 
-	while ((ret = getopt(argc, argv, "dhl:")) != EOF) {
+	while ((ret = getopt(argc, argv, "cdf:hl:")) != EOF) {
 		switch (ret) {
+		case 'c':
+			csv = 1;
+			break;
+
 		case 'd':
 			debug = 1;
+			break;
+
+		case 'f':
+			fn = optarg;
 			break;
 
 		case 'h':
@@ -417,6 +432,9 @@ int main(int argc, char *argv[])
 	if (optind >= argc)
 		return usage(1);
 	ifname = argv[optind];
+
+	if (!fn)
+		fn = ifname;
 
 	printf("\e[?25l");
 	printf("Starting %s on iface %s ...\n", __progname, ifname);
@@ -439,7 +457,10 @@ int main(int argc, char *argv[])
 	if (ret < 0)
 		err(1, "Failed binding socket to ifname %s", ifname);
 
-	db_open(ifname);
+	if (csv)
+		csv_open(fn);
+	else
+		db_open(fn);
 	if (logfile) {
 		logfp = fopen(logfile, "w");
 		if (logfp == NULL)
@@ -459,6 +480,7 @@ int main(int argc, char *argv[])
 	}
 
 	close(sd);
+	csv_close();
 	db_close();
 	printf("\nFinished.\n");
 

@@ -17,18 +17,18 @@ static int callback(void *unused, int argc, char *argv[], char **col)
 	return 0;
 }
 
-int db_open(char *ifname)
+int db_open(char *fn)
 {
 	int rc;
 	char *path, *sql, *err;
 
-	path = get_path(ifname, ".db");
+	path = get_path(fn, ".db");
 	rc = sqlite3_open(path, &db);
 	if (rc) {
 		fprintf(stderr, "Failed opening db, %s: %s\n", path, sqlite3_errmsg(db));
 		db = NULL;
 
-		fp = fopen(get_path(ifname, ".txt"), "w");
+		fp = fopen(get_path(fn, ".txt"), "w");
 		if (!fp)
 			return 1;
 	}
