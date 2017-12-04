@@ -3,22 +3,7 @@
 
 #include "sniffer.h"
 
-/* static FILE *fp = NULL; */
-/* static sqlite3 *db = NULL; */
-/* static struct sockaddr_in source, dest; */
-
 redisContext *c;
-
-static int callback(void *unused, int argc, char *argv[], char **col)
-{
-	int i;
-
-	for(i = 0; i < argc; i++)
-		printf("%s = %s\n", col[i], argv[i] ? argv[i] : "NULL");
-	printf("\n");
-
-	return 0;
-}
 
 int db_open(char *fn)
 {
@@ -39,9 +24,10 @@ int db_open(char *fn)
 	}
 
 	/* PING server */
-	reply = redisCommand(c,"PING");
+	reply = redisCommand(c, "PING");
 	printf("PING: %s\n", reply->str);
 	freeReplyObject(reply);
+
 	return 0;
 }
 
@@ -71,8 +57,8 @@ char *to_key(struct snif *snif)
 		inet_ntoa(snif->sip));
 	fprintf(fp, ",%s,%d,%d", inet_ntoa(snif->dip), snif->sport,
 		snif->dport);
-
 	fclose(fp);
+
 	return buf;
 }
 
@@ -82,7 +68,7 @@ int db_find(char *hash, struct snif *snif)
 	char *key = to_key(snif);
 	int exists;
 
-	reply = redisCommand(c,"HGET %s %s 1", hash, key);
+	reply = redisCommand(c, "HGET %s %s 1", hash, key);
 	printf("%d\n", reply->type);
 	exists = reply->type != REDIS_REPLY_NIL;
 	freeReplyObject(reply);
@@ -96,7 +82,7 @@ void db_insert(char *hash, struct snif *snif)
 	redisReply *reply;
 	char *key = to_key(snif);
 
-	reply = redisCommand(c,"HINCRBY %s %s 1", hash, key);
+	reply = redisCommand(c, "HINCRBY %s %s 1", hash, key);
 	freeReplyObject(reply);
 	free(key);
 }
