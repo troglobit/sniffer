@@ -1,4 +1,4 @@
-DB ?= sqlite
+DB    ?= redis
 
 EXEC   = sniffer
 OBJS   = sniffer.o csv.o $(DB).o
