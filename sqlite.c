@@ -115,7 +115,8 @@ void db_insert(struct snif *snif)
 
 	rc = sqlite3_exec(db, sql, callback, 0, &err);
 	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", err);
+		if (rc != SQLITE_BUSY && rc != SQLITE_LOCKED)
+			fprintf(stderr, "SQL error: %s\n", err);
 		sqlite3_free(err);
 		return;
 	}
