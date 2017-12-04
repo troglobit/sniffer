@@ -24,6 +24,7 @@
 #include "sniffer.h"
 
 int csv = 0;
+int mode = 0;			/* Learning(0), Monitor(1) */
 int debug = 0;
 FILE *logfp = NULL;
 
@@ -358,7 +359,7 @@ static void process(unsigned char *buf, size_t len)
 		break;
 	}
 
-	if (!format(buf, len, &snif)) {
+	if (!format(buf, len, &snif) && mode == 0) {
 		if (csv)
 			csv_insert(&snif);
 		else
@@ -373,6 +374,12 @@ static void process(unsigned char *buf, size_t len)
 static void sigcb(int signo)
 {
 	DBG("Got signal %d", signo);
+	if (signo == SIGHUP) {
+		printf("\nChanging %s to MONITOR mode ...\n", __progname);
+		mode = 1;
+		return;
+	}
+
 	printf("\e[?25h");
 	running = 0;
 }
@@ -439,13 +446,13 @@ int main(int argc, char *argv[])
 		fn = ifname;
 
 	printf("\e[?25l");
-	printf("Starting %s on iface %s ...\n", __progname, ifname);
+	printf("Starting %s in LEARNING mode on iface %s ...\n", __progname, ifname);
 	signal(SIGTERM, sigcb);
 	signal(SIGQUIT, SIG_IGN);
 	signal(SIGUSR1, SIG_IGN);
 	signal(SIGUSR2, SIG_IGN);
 	signal(SIGINT, sigcb);
-	signal(SIGHUP, SIG_IGN);
+	signal(SIGHUP, sigcb);
 
 	buf = malloc(BUFSIZ);
 	if (!buf)

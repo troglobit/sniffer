@@ -57,6 +57,8 @@ struct snif {
 	uint16_t        sport, dport;
 };
 
+extern int csv;
+extern int mode;
 extern int debug;
 extern FILE *logfp;
 extern char *__progname;
