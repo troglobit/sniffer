@@ -341,6 +341,7 @@ static void process(unsigned char *buf, size_t len)
 {
 	struct snif snif;
 	struct iphdr *iph;
+	int err;
 
 	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 
@@ -371,7 +372,8 @@ static void process(unsigned char *buf, size_t len)
 		break;
 	}
 
-	if (!format(buf, len, &snif) && mode == 0) {
+	err = format(buf, len, &snif);
+	if (!err && mode == 0) {
 		if (csv)
 			csv_insert(&snif);
 		else
@@ -380,7 +382,7 @@ static void process(unsigned char *buf, size_t len)
 
 	printf("\r\e[KTCP: %llu  UDP: %llu  ICMP: %llu  IGMP: %llu  Others: %llu  Total: %llu",
 	       tcp, udp, icmp, igmp, others, total);
-	if (mode) {
+	if (!err && mode) {
 		int found;
 
 		found = db_find(DB_GOOD, &snif);
