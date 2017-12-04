@@ -49,7 +49,7 @@ void fprint_mac(FILE *fp, const unsigned char *mac)
 		mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
-char *to_key(struct snif *snif)
+char *to_key(const struct snif *snif)
 {
 	char *buf;
 	size_t size;
@@ -74,9 +74,9 @@ int db_find(char *hash, struct snif *snif)
 	char *key = to_key(snif);
 	int exists;
 
-	reply = redisCommand(c, "HGET %s %s 1", hash, key);
-	DBG("HGET reply: %d", reply->type);
-	exists = reply->type != REDIS_REPLY_NIL;
+	reply = redisCommand(c, "HGET %s %s", hash, key);
+	DBG("HGET %s %s: %d\n", hash, key, reply->type);
+	exists = reply->type == REDIS_REPLY_STRING;
 	freeReplyObject(reply);
 	free(key);
 
