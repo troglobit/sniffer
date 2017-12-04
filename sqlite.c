@@ -75,8 +75,9 @@ int db_open(char *fn)
 			return 1;
 	}
 
-	db_creat(DB_GOOD);
-	db_creat(DB_BAD);
+	if (db_creat(DB_GOOD) ||
+	    db_creat(DB_BAD))
+		return 1;
 
 	DBG("db %s open, tables created successfully", path);
 
