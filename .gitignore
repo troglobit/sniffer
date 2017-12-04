@@ -1,4 +1,8 @@
 *~
 *.o
+ID
+GPATH
+GRTAGS
+GTAGS
 log.txt
 sniffer
