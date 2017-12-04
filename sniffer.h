@@ -30,8 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define DBTABLE "FRAME"
-#define FNBASE  "sniffer-%s"
+#define _PATH_SNIFFER "/var/lib/sniffer/"
+#define DBTABLE       "FRAME"
+#define FNBASE        "sniffer-%s"
 
 #define LOG(fmt, args...) if (logfp) fprintf(logfp, fmt "\n", ##args)
 #define DBG(fmt, args...) if (debug) LOG(fmt, ##args)
@@ -69,10 +70,14 @@ static inline char *get_path(char *fn, char *ext)
 	char *dir;
 	static char path[128];
 
-	if (getuid() > 0)
-		snprintf(path, sizeof(path), _PATH_VARRUN "user/%d/" FNBASE "%s", getuid(), fn, ext);
-	else
-		snprintf(path, sizeof(path), _PATH_VARRUN "%s/" FNBASE "%s", __progname, fn, ext);
+	if (fn[0] == '/') {
+		snprintf(path, sizeof(path), "%s%s", fn, ext);
+	} else {
+		if (getuid() > 0)
+			snprintf(path, sizeof(path), _PATH_VARRUN "user/%d/" FNBASE "%s", getuid(), fn, ext);
+		else
+			snprintf(path, sizeof(path), _PATH_SNIFFER FNBASE "%s", fn, ext);
+	}
 
 	dir = strdup(path);
 	if (!dir)
