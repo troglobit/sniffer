@@ -26,6 +26,7 @@
 int csv = 0;
 int mode = 0;			/* Learning(0), Monitor(1) */
 int debug = 0;
+int onlydsa = 1;		/* Only listen to DSA tagged frames by default */
 FILE *logfp = NULL;
 
 static struct sockaddr_in source, dest;
@@ -265,6 +266,7 @@ static void print_icmp_packet(unsigned char *buf, size_t len)
 
 static int format(unsigned char *buf, size_t len, struct snif *snif)
 {
+	int isdsa = 0;
 	struct ethhdr *eth = (struct ethhdr *)buf;
 	unsigned short offset = 0, iphdrlen, ip_off, type;
 	struct iphdr *iph;
@@ -276,6 +278,8 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 	type = ntohs(eth->h_proto);
 	if (type == 0xd5a) {
 		uint32_t dsa;
+
+		isdsa = 1;
 
 		offset = 12;
 		/* Skip DA+SA and four bytes 0x0d5a0000 */
@@ -291,6 +295,11 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 		snif->dir    = (dsa >> 18) & 0x1;
 		snif->tagged = (dsa >> 29) & 0x1;
 		snif->prio   = (dsa >> 13) & 0x7;
+	}
+
+	if (onlydsa && !isdsa) {
+		DBG("Skipping, not a DSA frame");
+		return 1;
 	}
 
 	iph = (struct iphdr *)(buf + offset + sizeof(struct ethhdr));
@@ -404,6 +413,7 @@ static int usage(int code)
 		"  -f FILE  Set base FILE name for output data\n"
 		"  -h       This help text\n"
 		"  -l FILE  Log all packets to FILE\n"
+		"  -x       Allow sniffing normal, non-DSA, traffic\n"
 		"\n",
 		__progname);
 
@@ -420,7 +430,7 @@ int main(int argc, char *argv[])
 	char *fn = NULL, *logfile = NULL, *ifname = NULL;
 	int sd, ret;
 
-	while ((ret = getopt(argc, argv, "cdf:hl:")) != EOF) {
+	while ((ret = getopt(argc, argv, "cdf:hl:x")) != EOF) {
 		switch (ret) {
 		case 'c':
 			csv = 1;
@@ -439,6 +449,10 @@ int main(int argc, char *argv[])
 
 		case 'l':
 			logfile = optarg;
+			break;
+
+		case 'x':
+			onlydsa = 0;
 			break;
 
 		default:
