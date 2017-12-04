@@ -37,15 +37,17 @@
 
 /*
  * Proposed output format, regardless of back-end:
- * id,dir,port,vid,tagged,prio,dmac,smac,ethtype,proto,sip,dip,sport,dport
+ * id,len,dir,port,dmac,smac,vid,tagged,prio,ethtype,proto,sip,dip,sport,dport
  */
 struct snif {
+	uint8_t         dsa[8], port, dir;
+	size_t          len;
+
 	uint8_t         dmac[ETH_ALEN], smac[ETH_ALEN];
 	uint16_t        ethtype;
 
-	uint8_t         dsa[8];
-	uint8_t         port, dir, prio, tagged;
 	uint16_t        vid;
+	uint8_t         prio, tagged;
 
 	/* IP header (IPv4 only for now) */
 	uint8_t         proto;

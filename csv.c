@@ -8,7 +8,7 @@ int csv_open(char *fn)
 	if (!fp)
 		return -1;
 
-	fprintf(fp, "frameDir,framePort,frameVID,frameTagged,framePrio,frameDMAC,frameSMAC,frameEthType,frameProto,frameSIP,frameDIP,frameSPORT,frameDPORT\r\n");
+	fprintf(fp, "frameLen,frameDir,framePort,frameDMAC,frameSMAC,frameEthType,frameVID,frameTagged,framePrio,frameProto,frameSIP,frameDIP,frameSPORT,frameDPORT\r\n");
 	return 0;
 }
 
@@ -39,13 +39,15 @@ void csv_insert(struct snif *snif)
 	snprintf(sip, sizeof(sip), "%s", inet_ntoa(snif->sip));
 	snprintf(dip, sizeof(dip), "%s", inet_ntoa(snif->sip));
 
-	fprintf(fp, "%s,%d,%d,%c,%d,%s,%s,0x%02d,%d,%s,%s,%d,%d\r\n",
+	fprintf(fp, "%zd,%s,%d,%s,%s,0x%02d,%d,%c,%d,%d,%s,%s,%d,%d\r\n",
+		snif->len,
 		snif->dir ? "RX" : "TX",
 		(int)snif->port,
+		dmac, smac, snif->ethtype,
 		(int)snif->vid,
 		snif->tagged ? 'T' : 'U',
 		(int)snif->prio,
-		dmac, smac, snif->ethtype, snif->proto,
+		snif->proto,
 		sip, dip, snif->sport, snif->dport);
 
 	fflush(fp);

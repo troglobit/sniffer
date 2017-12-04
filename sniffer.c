@@ -270,6 +270,7 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 	struct tcphdr *tcph;
 
 	memset(snif, 0, sizeof(*snif));
+	snif->len = len;
 
 	type = ntohs(eth->h_proto);
 	if (type == 0xd5a) {
