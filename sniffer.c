@@ -501,9 +501,12 @@ int main(int argc, char *argv[])
 	}
 
 	if (csv)
-		csv_open(fn);
+		rc = csv_open(fn);
 	else
-		db_open(fn);
+		rc = db_open(fn);
+	if (rc)
+		return 1;
+
 	if (logfile) {
 		logfp = fopen(logfile, "w");
 		if (logfp == NULL)
