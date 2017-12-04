@@ -25,7 +25,7 @@ int db_open(char *fn)
 
 	/* PING server */
 	reply = redisCommand(c, "PING");
-	printf("PING: %s\n", reply->str);
+	DBG("PING: %s", reply->str);
 	freeReplyObject(reply);
 
 	return 0;
@@ -69,7 +69,7 @@ int db_find(char *hash, struct snif *snif)
 	int exists;
 
 	reply = redisCommand(c, "HGET %s %s 1", hash, key);
-	printf("%d\n", reply->type);
+	DBG("HGET reply: %d", reply->type);
 	exists = reply->type != REDIS_REPLY_NIL;
 	freeReplyObject(reply);
 	free(key);
