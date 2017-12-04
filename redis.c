@@ -76,12 +76,27 @@ char *to_key(struct snif *snif)
 	return buf;
 }
 
-void db_insert(struct snif *snif)
+int db_find(char *hash, struct snif *snif)
+{
+	redisReply *reply;
+	char *key = to_key(snif);
+	int exists;
+
+	reply = redisCommand(c,"HGET %s %s 1", hash, key);
+	printf("%d\n", reply->type);
+	exists = reply->type != REDIS_REPLY_NIL;
+	freeReplyObject(reply);
+	free(key);
+
+	return exists;
+}
+
+void db_insert(char *hash, struct snif *snif)
 {
 	redisReply *reply;
 	char *key = to_key(snif);
 
-	reply = redisCommand(c,"HINCRBY good %s 1", key);
+	reply = redisCommand(c,"HINCRBY %s %s 1", hash, key);
 	freeReplyObject(reply);
 	free(key);
 }
