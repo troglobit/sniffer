@@ -35,11 +35,19 @@ int db_open(char *fn)
 
 	sql = "CREATE TABLE IF NOT EXISTS " DBTABLE "("
 		"ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+		"DIRECTION      TEXT    NOT NULL,"   /* RX/TX */
+		"PORT           INT     NOT NULL,"   /* Switch port# */
+		"VLAN           INT     NOT NULL,"   /* VLAN ID */
+		"TAGGED         INT     NOT NULL,"   /* BOOLEAN */
+		"PRIORITY       INT     NOT NULL,"
 		"DMAC           TEXT    NOT NULL,"
 		"SMAC           TEXT    NOT NULL,"
-		"TYPE           TEXT    NOT NULL,"
-		"SIP            TEXT    NOT NULL,"
-		"DIP            TEXT    NOT NULL);";
+		"TYPE           TEXT    NOT NULL,"   /* EthType */
+		"PROTO          INT     NOT NULL,"   /* IP Prototcol */
+		"SIP            TEXT    NOT NULL,"   /* Source IP, if IPv4 */
+		"DIP            TEXT    NOT NULL,"   /* Dest. IP, if IPv4 */
+		"SPORT          INT     NOT NULL,"   /* Source port, for TCP/UDP */
+		"DPORT          INT     NOT NULL);"; /* Dest. port, for TCP/UDP */
 //		"COUNT          INT     NOT NULL);";
 	rc = sqlite3_exec(db, sql, callback, 0, &err);
 	if (rc != SQLITE_OK) {
@@ -98,8 +106,12 @@ void db_insert(struct snif *snif)
 		return;
 	}
 
-	snprintf(sql, sizeof(sql), "INSERT INTO " DBTABLE "(DMAC, SMAC, TYPE, SIP, DIP) "
-		 "VALUES ('%s', '%s', '%s', '%s', '%s');", dmac, smac, ethtype, sip, dip);
+	snprintf(sql, sizeof(sql), "INSERT INTO " DBTABLE
+		 "(DIRECTION, PORT, VLAN, TAGGED, PRIORITY, DMAC, SMAC, TYPE, PROTO, SIP, DIP, SPORT, DPORT) "
+		 "VALUES ('%s', %d, %d, '%c', %d, '%s', '%s', '%s', %d, '%s', '%s', %d, %d);",
+		 snif->dir ? "RX" : "TX",
+		 snif->port, snif->vid, snif->tagged ? 'T' : 'U', snif->prio,
+		 dmac, smac, ethtype, snif->proto, sip, dip, snif->sport, snif->dport);
 
 	rc = sqlite3_exec(db, sql, callback, 0, &err);
 	if (rc != SQLITE_OK) {
