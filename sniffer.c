@@ -284,7 +284,8 @@ static int format(unsigned char *buf, size_t len, struct snif *snif)
 		offset = 12;
 		/* Skip DA+SA and four bytes 0x0d5a0000 */
 		memcpy(snif->dsa, &buf[2 * ETH_ALEN + 4], sizeof(snif->dsa));
-		type = ntohs((eth + 10)->h_proto);
+
+		type = ntohs(*((uint16_t *)(buf + 24)));
 
 		dsa  =  (snif->dsa[0] << 24) |
 			(snif->dsa[1] << 16) |
