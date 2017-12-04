@@ -29,7 +29,7 @@ static struct sockaddr_in source, dest;
 static int running = 1;
 static unsigned long long tcp = 0, udp = 0, icmp = 0, others = 0, igmp = 0, total = 0;
 
-static void print_payload(unsigned char *data, int len)
+static void print_payload(unsigned char *data, size_t len)
 {
 	int i, j;
 
@@ -69,7 +69,7 @@ static void print_payload(unsigned char *data, int len)
 	}
 }
 
-static void print_ethernet_header(unsigned char *buf, int len)
+static void print_ethernet_header(unsigned char *buf, size_t len)
 {
 	struct ethhdr *eth = (struct ethhdr *)buf;
 
@@ -85,7 +85,7 @@ static void print_ethernet_header(unsigned char *buf, int len)
 	LOG("   |-Protocol            : %u ", (unsigned short)eth->h_proto);
 }
 
-static void print_ip_header(unsigned char *buf, int len)
+static void print_ip_header(unsigned char *buf, size_t len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -121,7 +121,7 @@ static void print_ip_header(unsigned char *buf, int len)
 	LOG("   |-Destination IP   : %s", inet_ntoa(dest.sin_addr));
 }
 
-static void print_tcp_packet(unsigned char *buf, int len)
+static void print_tcp_packet(unsigned char *buf, size_t len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -173,7 +173,7 @@ static void print_tcp_packet(unsigned char *buf, int len)
 	LOG("\n###########################################################");
 }
 
-static void print_udp_packet(unsigned char *buf, int len)
+static void print_udp_packet(unsigned char *buf, size_t len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -202,7 +202,7 @@ static void print_udp_packet(unsigned char *buf, int len)
 	print_payload(buf, iphdrlen);
 
 	LOG("UDP Header");
-	print_payload(buf + iphdrlen, sizeof udph);
+	print_payload(buf + iphdrlen, sizeof(udph));
 
 	LOG("Data Payload");
 
@@ -212,7 +212,7 @@ static void print_udp_packet(unsigned char *buf, int len)
 	LOG("\n###########################################################");
 }
 
-static void print_icmp_packet(unsigned char *buf, int len)
+static void print_icmp_packet(unsigned char *buf, size_t len)
 {
 	unsigned short iphdrlen;
 	struct iphdr *iph;
@@ -228,7 +228,7 @@ static void print_icmp_packet(unsigned char *buf, int len)
 	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 	iphdrlen = iph->ihl * 4;
 	icmph = (struct icmphdr *)(buf + iphdrlen + sizeof(struct ethhdr));
-	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof icmph;
+	hdrlen = sizeof(struct ethhdr) + iphdrlen + sizeof(icmph);
 
 	LOG("");
 	LOG("ICMP Header");
@@ -250,7 +250,7 @@ static void print_icmp_packet(unsigned char *buf, int len)
 	print_payload(buf, iphdrlen);
 
 	LOG("UDP Header");
-	print_payload(buf + iphdrlen, sizeof icmph);
+	print_payload(buf + iphdrlen, sizeof(icmph));
 
 	LOG("Data Payload");
 
@@ -260,7 +260,7 @@ static void print_icmp_packet(unsigned char *buf, int len)
 	LOG("\n###########################################################");
 }
 
-static int format(unsigned char *buf, int size, struct snif *snif)
+static int format(unsigned char *buf, size_t len, struct snif *snif)
 {
 	struct ethhdr *eth = (struct ethhdr *)buf;
 	unsigned short offset = 0, iphdrlen, ip_off, type;
@@ -305,31 +305,33 @@ static int format(unsigned char *buf, int size, struct snif *snif)
 	return 0;
 }
 
-static void process(unsigned char *buf, int size)
+static void process(unsigned char *buf, size_t len)
 {
 	struct snif snif;
-	struct iphdr *iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
+	struct iphdr *iph;
+
+	iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 
 	total++;
 	switch (iph->protocol) {
 	case 1:			/* ICMP Protocol */
 		icmp++;
-		print_icmp_packet(buf, size);
+		print_icmp_packet(buf, len);
 		break;
 
 	case 2:			/* IGMP Protocol */
 		igmp++;
-		print_ip_header(buf, size);
+		print_ip_header(buf, len);
 		break;
 
 	case 6:			/* TCP Protocol */
 		tcp++;
-		print_tcp_packet(buf, size);
+		print_tcp_packet(buf, len);
 		break;
 
 	case 17:		/* UDP Protocol */
 		udp++;
-		print_udp_packet(buf, size);
+		print_udp_packet(buf, len);
 		break;
 
 	default:		/* Some Other Protocol like ARP etc. */
@@ -337,7 +339,7 @@ static void process(unsigned char *buf, int size)
 		break;
 	}
 
-	if (!format(buf, size, &snif)) {
+	if (!format(buf, len, &snif)) {
 		db_insert(&snif);
 	}
 
