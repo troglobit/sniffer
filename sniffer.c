@@ -90,8 +90,6 @@ static void print_ip_header(unsigned char *buf, int len)
 	unsigned short iphdrlen;
 	struct iphdr *iph;
 
-	db_insert(buf, len);
-
 	print_ethernet_header(buf, len);
 
 	if (!logfp)
@@ -262,8 +260,54 @@ static void print_icmp_packet(unsigned char *buf, int len)
 	LOG("\n###########################################################");
 }
 
+static int format(unsigned char *buf, int size, struct snif *snif)
+{
+	struct ethhdr *eth = (struct ethhdr *)buf;
+	unsigned short offset = 0, iphdrlen, ip_off, type;
+	struct iphdr *iph;
+	struct tcphdr *tcph;
+
+	type = ntohs(eth->h_proto);
+	if (type == 0x0d5a) {
+		offset = 12;
+//		type = ntohs((eth + 10)->h_proto);
+	}
+	iph = (struct iphdr *)(buf + offset + sizeof(struct ethhdr));
+	iphdrlen = iph->ihl * 4;
+	tcph = (struct tcphdr *)(buf + offset + iphdrlen + sizeof(struct ethhdr));
+
+	memset(&source, 0, sizeof(source));
+	source.sin_addr.s_addr = iph->saddr;
+
+	memset(&dest, 0, sizeof(dest));
+	dest.sin_addr.s_addr = iph->daddr;
+
+	/* Skip fragments ... */
+	ip_off = ntohs(iph->frag_off);
+	if (ip_off & 0x1fff)
+		return 1;
+
+	memset(snif, 0, sizeof(*snif));
+	memcpy(snif->dmac, eth->h_dest, ETH_ALEN);
+	memcpy(snif->smac, eth->h_source, ETH_ALEN);
+	snif->ethtype = type;
+	/* IPv4 */
+	if (snif->ethtype == 0x0800) {
+		snif->proto = iph->protocol;
+		snif->sip   = source.sin_addr;
+		snif->dip   = dest.sin_addr;
+		if (snif->proto == 6 || snif->proto == 17) {
+			snif->sport = ntohs(tcph->source);
+			snif->dport = ntohs(tcph->dest);
+		}
+	}
+
+	return 0;
+}
+
 static void process(unsigned char *buf, int size)
 {
+	struct snif snif;
 	struct iphdr *iph = (struct iphdr *)(buf + sizeof(struct ethhdr));
 
 	total++;
@@ -291,6 +335,10 @@ static void process(unsigned char *buf, int size)
 	default:		/* Some Other Protocol like ARP etc. */
 		others++;
 		break;
+	}
+
+	if (!format(buf, size, &snif)) {
+		db_insert(&snif);
 	}
 
 	printf("\r\e[KTCP: %llu  UDP: %llu  ICMP: %llu  IGMP: %llu  Others: %llu  Total: %llu",

@@ -60,73 +60,49 @@ int db_close(void)
 		fclose(fp);
 }
 
-void db_insert(unsigned char *buf, int len)
+void db_insert(struct snif *snif)
 {
-	struct ethhdr *eth = (struct ethhdr *)buf;
-	unsigned short offset = 0, iphdrlen, ip_off, type;
-	struct iphdr *iph;
+	int rc;
+	char sql[256];
+	char *err;
 	char dmac[20], smac[20], ethtype[10], sip[20], dip[20];
 
-	type = ntohs(eth->h_proto);
-	if (type == 0x0d5a) {
-		offset = 12;
-//		type = ntohs((eth + 10)->h_proto);
-	}
-	iph = (struct iphdr *)(buf + offset + sizeof(struct ethhdr));
-	iphdrlen = iph->ihl * 4;
-
-	memset(&source, 0, sizeof(source));
-	source.sin_addr.s_addr = iph->saddr;
-
-	memset(&dest, 0, sizeof(dest));
-	dest.sin_addr.s_addr = iph->daddr;
-
-	/* Skip fragments ... */
-	ip_off = ntohs(iph->frag_off);
-	if (ip_off & 0x1fff)
-		return;
-
 	snprintf(dmac, sizeof(dmac), "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-		 eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
-		 eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+		 snif->dmac[0], snif->dmac[1], snif->dmac[2],
+		 snif->dmac[3], snif->dmac[4], snif->dmac[5]);
 	snprintf(smac, sizeof(smac), "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-		 eth->h_source[0], eth->h_source[1], eth->h_source[2],
-		 eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-	snprintf(ethtype, sizeof(ethtype), "0x%.4X", (unsigned short)type);
-	snprintf(sip, sizeof(sip), "%15s", inet_ntoa(source.sin_addr));
-	snprintf(dip, sizeof(dip), "%15s", inet_ntoa(dest.sin_addr));
+		 snif->smac[0], snif->smac[1], snif->smac[2],
+		 snif->smac[3], snif->smac[4], snif->smac[5]);
+	snprintf(ethtype, sizeof(ethtype), "0x%.4X", snif->ethtype);
+	snprintf(sip, sizeof(sip), "%15s", inet_ntoa(snif->sip));
+	snprintf(dip, sizeof(dip), "%15s", inet_ntoa(snif->sip));
 
-	if (db) {
-		int rc;
-		char sql[256];
-		char *err;
-
-		snprintf(sql, sizeof(sql), "INSERT INTO " DBTABLE "(DMAC, SMAC, TYPE, SIP, DIP) "
-			 "VALUES ('%s', '%s', '%s', '%s', '%s');", dmac, smac, ethtype, sip, dip);
-
-		rc = sqlite3_exec(db, sql, callback, 0, &err);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL error: %s\n", err);
-			sqlite3_free(err);
+	if (!db) {
+		warnx("db not open.");
+		if (!fp) {
+			warnx("log file not open.");
 			return;
 		}
 
+		fprintf(fp, "[ DMAC: %s | ", dmac);
+		fprintf(fp, "SMAC: %s | ", smac);
+		fprintf(fp, "TYPE: %s | ", ethtype);
+//		fprintf(fp, "IPv%d | ", (unsigned int)iph->version);
+		fprintf(fp, "SIP: %s |", sip);
+		fprintf(fp, "DIP: %s ]\n", dip);
+		fflush(fp);
 		return;
 	}
 
-	warnx("db not open.");
-	if (!fp) {
-		warnx("log file not open.");
+	snprintf(sql, sizeof(sql), "INSERT INTO " DBTABLE "(DMAC, SMAC, TYPE, SIP, DIP) "
+		 "VALUES ('%s', '%s', '%s', '%s', '%s');", dmac, smac, ethtype, sip, dip);
+
+	rc = sqlite3_exec(db, sql, callback, 0, &err);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error: %s\n", err);
+		sqlite3_free(err);
 		return;
 	}
-
-	fprintf(fp, "[ DMAC: %s | ", dmac);
-	fprintf(fp, "SMAC: %s | ", smac);
-	fprintf(fp, "TYPE: %s | ", ethtype);
-	fprintf(fp, "IPv%d | ", (unsigned int)iph->version);
-	fprintf(fp, "SIP: %s |", sip);
-	fprintf(fp, "DIP: %s ]\n", dip);
-	fflush(fp);
 }
 
 /**
