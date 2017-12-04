@@ -28,6 +28,12 @@ int db_open(char *fn)
 	DBG("PING: %s", reply->str);
 	freeReplyObject(reply);
 
+	reply = redisCommand(c,"SET schema "
+			     "frameDir,framePort,"
+			     "frameDMAC,frameSMAC,frameEthType,"
+			     "frameProto,frameSIP,frameDIP,"
+			     "frameSPORT,frameDPORT");
+	freeReplyObject(reply);
 	return 0;
 }
 
